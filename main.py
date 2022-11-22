@@ -11,10 +11,10 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import logging
-
-
+import sqlite3
 
 TOKEN = '5594391007:AAFjbxqcld-zIKaLffrn_ZDXXfc20evlESg'
+
 
 # ? Настройка логирования в stdout
 logging.basicConfig(
@@ -69,12 +69,21 @@ item2 = types.KeyboardButton('Оплата через кошелёк(крипт�
 back = types.KeyboardButton('Назад ↩️')
 op.add(item1, item2, back)
 
+conn = sqlite3.connect('db/fins.db', check_same_thread=False)
+cursor = conn.cursor()
+
+
+def db_table_val(user_id: int, user_nik: str , user_name: str):
+	cursor.execute('INSERT INTO fins (user_id, user_nik, user_name) VALUES (?, ?, ?, ?)', (user_id, user_nik, user_name))
+	conn.commit()
+
 # state="*" означает, что этот хэндлер будет работать при любом стэйте
 @dp.message_handler(commands="start", state="*")
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.finish() # Завершение активного стейта
     await message.answer("Привет! Это команда Finesse✨ \n\nFinesse - это команда профессионалов, которая круглосуточно анализирует,"
-     "выдают сетапы и делятся торгами, оттачивают стратегии и помогают развиваться другим.", reply_markup=greet_kb)
+    "выдают сетапы и делятся торгами, оттачивают стратегии и помогают развиваться другим.", reply_markup=greet_kb)
+
 
 
 @dp.message_handler(text="Курсы", state="*")
@@ -82,6 +91,12 @@ async def courses(message: types.Message):
     with open('ob.jpg', 'rb') as file:
         await bot.send_photo(message.chat.id, file)
     await message.answer("Пожалуйста, выберете курс!", reply_markup=ku)
+    us_id = message.from_user.id
+    us_nik = message.from_user.first_name
+    username = message.from_user.username
+		
+    db_table_val(user_id=us_id, user_name=us_nik, username=username)
+    
 
 
 @dp.message_handler(text="Поддержка 🛠", state="*")
