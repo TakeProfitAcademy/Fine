@@ -13,7 +13,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import logging
 import sqlite3
 
-TOKEN = '5594391007:AAFjbxqcld-zIKaLffrn_ZDXXfc20evlESg'
+TOKEN = '5594391007:AAECVTfItM0vfhGfUVQZIqIUZfFK8GNFUgM'
 
 
 # ? Настройка логирования в stdout
@@ -69,12 +69,12 @@ item2 = types.KeyboardButton('Оплата через кошелёк(крипт�
 back = types.KeyboardButton('Назад ↩️')
 op.add(item1, item2, back)
 
-conn = sqlite3.connect('db/fins.db', check_same_thread=False)
+conn = sqlite3.connect('fins.db', check_same_thread=False)
 cursor = conn.cursor()
 
 
-def db_table_val(user_id: int, user_nik: str , user_name: str):
-	cursor.execute('INSERT INTO fins (user_id, user_nik, user_name) VALUES (?, ?, ?, ?)', (user_id, user_nik, user_name))
+def db_table_val(user_id: int, user_name: str, username: str):
+	cursor.execute('INSERT INTO fins (user_id, user_name, username) VALUES (?, ?, ?, ?)', (user_id, user_name, username))
 	conn.commit()
 
 # state="*" означает, что этот хэндлер будет работать при любом стэйте
@@ -91,12 +91,13 @@ async def courses(message: types.Message):
     with open('ob.jpg', 'rb') as file:
         await bot.send_photo(message.chat.id, file)
     await message.answer("Пожалуйста, выберете курс!", reply_markup=ku)
+
     us_id = message.from_user.id
-    us_nik = message.from_user.first_name
+    us_name = message.from_user.first_name
+    
     username = message.from_user.username
 		
-    db_table_val(user_id=us_id, user_name=us_nik, username=username)
-    
+    db_table_val(user_id=us_id, user_name=us_name,username=username)
 
 
 @dp.message_handler(text="Поддержка 🛠", state="*")
