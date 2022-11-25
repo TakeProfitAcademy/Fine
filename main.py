@@ -13,8 +13,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import logging
 import sqlite3
 
-TOKEN = '5594391007:AAECVTfItM0vfhGfUVQZIqIUZfFK8GNFUgM'
-
+TOKEN = '5594391007:AAHGebNbF9JGlycU-HivOrPp33XLNnji2oU'
 
 # ? Настройка логирования в stdout
 logging.basicConfig(
@@ -27,7 +26,42 @@ logger = logging.getLogger(__name__)
 
 
 bot = Bot(TOKEN)
-dp = Dispatcher(bot, storage=MemoryStorage())
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
+
+# Определяем БД и таблицы ---------------------------------------
+# с путём до файла БД сам разберешься. Будем считать, что он лежит рядом
+# С полями таблицы тоже можешь оперировать.
+conn = sqlite3.connect("fins.db")
+cur = conn.cursor()
+cur.execute(
+    """CREATE TABLE IF NOT EXISTS finsbot(
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    user_id INTEGER,
+    username TEXT);
+"""
+)
+conn.commit()
+cur.close()
+
+# Функция добавления пользователя в БД, если его там нет
+def put_user(user_id: int, username: str = None) -> None:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM finsbot WHERE user_id = ?", (user_id,))
+    if user_is_exist := cur.fetchone():
+        cur.close()
+        return
+
+    cur.execute(
+        "INSERT INTO finsbot VALUES (NULL, ?,?)",
+        (
+            user_id,
+            username,
+        ),
+    )
+    conn.commit()
+    cur.close()
+
 
 # * Определяем стейты для FSM
 class MainStates(StatesGroup):
@@ -69,13 +103,6 @@ item2 = types.KeyboardButton('Оплата через кошелёк(крипт�
 back = types.KeyboardButton('Назад ↩️')
 op.add(item1, item2, back)
 
-conn = sqlite3.connect('fins.db', check_same_thread=False)
-cursor = conn.cursor()
-
-
-def db_table_val(user_id: int, user_name: str, username: str):
-	cursor.execute('INSERT INTO fins (user_id, user_name, username) VALUES (?, ?, ?, ?)', (user_id, user_name, username))
-	conn.commit()
 
 # state="*" означает, что этот хэндлер будет работать при любом стэйте
 @dp.message_handler(commands="start", state="*")
@@ -83,21 +110,13 @@ async def cmd_start(message: types.Message, state: FSMContext):
     await state.finish() # Завершение активного стейта
     await message.answer("Привет! Это команда Finesse✨ \n\nFinesse - это команда профессионалов, которая круглосуточно анализирует,"
     "выдают сетапы и делятся торгами, оттачивают стратегии и помогают развиваться другим.", reply_markup=greet_kb)
-
-
+    put_user(message.from_user.id, message.from_user.username)    
 
 @dp.message_handler(text="Курсы", state="*")
 async def courses(message: types.Message):
     with open('ob.jpg', 'rb') as file:
         await bot.send_photo(message.chat.id, file)
     await message.answer("Пожалуйста, выберете курс!", reply_markup=ku)
-
-    us_id = message.from_user.id
-    us_name = message.from_user.first_name
-    
-    username = message.from_user.username
-		
-    db_table_val(user_id=us_id, user_name=us_name,username=username)
 
 
 @dp.message_handler(text="Поддержка 🛠", state="*")
